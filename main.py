@@ -35,8 +35,7 @@ class Spotipy:
             'postprocessors': [
                 {
                     'key': 'FFmpegExtractAudio',
-                    'preferredcodec': 'mp3',
-                    'preferredquality': '320',
+                    'preferredcodec': 'm4a',
                 },
                 {'key': 'EmbedThumbnail'},
                 {'key': 'FFmpegMetadata'},
@@ -48,11 +47,9 @@ class Spotipy:
         with YoutubeDL(ydl_opts) as ydl:
             ydl.download([name])
 
-    def fetch_track(self, message, playlist_url: str, is_zip=False):
+    def fetch_track(self, message, playlist_url: str):
         fullname = []
         offset = 0
-
-        edit(message, f'`{get_translation("downloadMedia")}`')
 
         while True:
             fields = "items.track.name,items.track.artists.name,total"
@@ -79,30 +76,6 @@ class Spotipy:
             if total == offset:
                 break
         self.download_track(message, fullname, is_zip=is_zip)
-
-    def download_track(self, message, song_list: list, is_zip):
-        lock = Lock()
-        with lock:
-            with ThreadPoolExecutor(min(32, cpu_count() or 0) + 4) as executor:
-                executor.map(self.search_track, song_list)
-
-        if is_zip:
-            zipfile = ZipFile('Spotify/playlist.zip', 'w')
-            for song in glob('Spotify/*.mp3'):
-                zipfile.write(song)
-                remove(song)
-            zipfile.close()
-
-            edit(message, f'`{get_translation("uploadingZip")}`')
-            reply_doc(
-                message,
-                'Spotify/playlist.zip',
-                delete_orig=True,
-                delete_after_send=True,
-            )
-        else:
-            for song in glob('Spotify/*.mp3'):
-                reply_audio(message, song, delete_orig=True, delete_file=True)
 
     def show_playlist(self, username=None):
         global counter
